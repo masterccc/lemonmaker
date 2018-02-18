@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/wait.h>
+#include <sys/statvfs.h>
 
 #include "bar.h"
 
@@ -27,9 +28,12 @@
 
 #define ACPI_SIZE 70
 #define ACPI_EXTERN_PROG "/usr/bin/acpi"
-#define THEME_ACPI_BEGIN "%%{B#00FF00} "
+#define THEME_ACPI_BEGIN "%%{u#00AA00} "
 #define THEME_ACPI_END   " %%{B-}"
 
+#define DSPACE_SIZE 26 + 17
+#define THEME_DSPACE_BEGIN "%%{r}%%{B#FAA400} "
+#define THEME_DSPACE_END   " %%{B-}"
 
 void set_task(struct s_task *task,
               int timer,
@@ -130,16 +134,34 @@ void update_acpi(char *out){
     }
 }
 
+void update_dspace(char *out){
+
+    struct statvfs root, home;
+
+    statvfs("/", &root);
+    statvfs("/home", &home);
+
+    float rspace = 100 - (((float)root.f_bfree / (float)root.f_blocks) * 100);
+    float hspace = 100 - (((float)home.f_bfree / (float)home.f_blocks) * 100) ;
+
+    snprintf(out, DSPACE_SIZE, THEME_DSPACE_BEGIN
+        " / : %.2f%% /home : %.2f%%" THEME_DSPACE_END,
+        rspace, hspace);
+
+}
+
+
 int main(void){
 
     int i;
-    struct s_task bar_ip, bar_date, bar_acpi;
+    struct s_task bar_ip, bar_date, bar_acpi, bar_dspace ;
 
     set_task( &bar_ip, 1, 60, get_ip_addr, &bar_ip.str, IP_SIZE);
     set_task( &bar_date, 1, 60, update_date, &bar_date.str, DATE_SIZE);
     set_task( &bar_acpi, 1, 120, update_acpi, &bar_acpi.str, ACPI_SIZE);
+    set_task( &bar_dspace, 1, 600, update_dspace, &bar_dspace.str, DSPACE_SIZE);
 
-    struct s_task tasks[] = { bar_ip, bar_acpi, bar_date };
+    struct s_task tasks[] = { bar_dspace, bar_ip, bar_acpi, bar_date };
 
     char ban[TOTAL_LENGTH];
     char *ban_p ;

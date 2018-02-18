@@ -9,6 +9,7 @@ Every block can have a different refresh delay.
 * Battery level
 * Local IP
 * Date & hour
+* Disk space indicator (/ & /home)
 
 ## How to add your own block
 
