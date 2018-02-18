@@ -13,31 +13,22 @@
 #include <time.h>
 #include <sys/wait.h>
 
+#include "bar.h"
+
 #define TOTAL_LENGTH 500
 
 #define IP_SIZE 43
-#define THEME_IP_BEGIN "%{B#11AABB} "
-#define THEME_IP_END   " %{B-}"
+#define THEME_IP_BEGIN "%%{B#11AABB} "
+#define THEME_IP_END   " %%{B-}"
 
 #define DATE_SIZE 37
-#define THEME_DATE_BEGIN "%{B#FF0000} "
-#define THEME_DATE_END   " %{B-}"
+#define THEME_DATE_BEGIN "%%{B#FF0000} "
+#define THEME_DATE_END   " %%{B-}"
 
 #define ACPI_SIZE 70
-#define THEME_ACPI_BEGIN "%{B#00FF00} "
-#define THEME_ACPI_END   " %{B-}"
-
-struct s_task {
-	int timer, base_timer;
-	void (*func)(char*);
-	char *str;
-};
-
-
-void set_task(struct s_task *task,int timer,
-              int base_timer, void (*func)(char*),
-              char** str, int str_len);
-
+#define ACPI_EXTERN_PROG "/usr/bin/acpi"
+#define THEME_ACPI_BEGIN "%%{B#00FF00} "
+#define THEME_ACPI_END   " %%{B-}"
 
 
 void set_task(struct s_task *task,
@@ -54,21 +45,26 @@ void set_task(struct s_task *task,
 void get_ip_addr(char *str){
 
   struct ifaddrs *addrs ;
-  getifaddrs(&addrs);
-  int family, s, n, pass=0;
+  int family, pass;
   char host[NI_MAXHOST];
+  struct ifaddrs *p;
 
-  struct ifaddrs *p = addrs ;
-
+  getifaddrs(&addrs);
+  pass = 0 ;
+  p = addrs ;
+  
   while(p){
 
     family = p->ifa_addr->sa_family;
     if (family == AF_INET && strcmp("lo",p->ifa_name)) {
-      s = getnameinfo(p->ifa_addr,
-      (family == AF_INET) ? sizeof(struct sockaddr_in) :
-      sizeof(struct sockaddr_in6),
-      host, NI_MAXHOST,
-      NULL, 0, NI_NUMERICHOST);
+      getnameinfo(p->ifa_addr,
+        (family == AF_INET) ? sizeof(struct sockaddr_in) :
+        sizeof(struct sockaddr_in6),
+        host,
+        NI_MAXHOST,
+        NULL,
+        0,
+        NI_NUMERICHOST);
       pass++;
       snprintf(str, IP_SIZE, THEME_IP_BEGIN "%s@%s" THEME_IP_END, p->ifa_name, host);
     }
@@ -97,28 +93,32 @@ void update_date(char *out){
 
 void update_acpi(char *out){
 
-    int pip[2];
-    int ret = pipe(pip);
-    int status ;
-    char res[50] = {0} ;
-    // 0 = lire
-    // 1 = écrire
+    int pip[2], status ;
+    char res[50] = {0}, *p ;
     pid_t pid ;
+    /*
+    pipe : 
+    0 = lire
+    1 = écrire
+    */
+    const char *prog = ACPI_EXTERN_PROG ;
+    pipe(pip);
+    
     pid = fork();
 
     if(pid == 0){
-        //child
+        /* child process */
         dup2(pip[1], 1);
         close(pip[0]);
         close(pip[1]);
-        execv("/usr/bin/acpi", NULL);
+        execv(prog, (char**)NULL);
         exit(EXIT_SUCCESS);
     }
     else {
         close(pip[1]);
         read(pip[0], res, 50);
         waitpid(pid, &status, 0);
-        char *p = res ;
+        p = res ;
         while(*p){
             if(*p == '\n')
                 *p = ' ';
@@ -132,7 +132,7 @@ void update_acpi(char *out){
 
 int main(void){
 
-    int i ;
+    int i;
     struct s_task bar_ip, bar_date, bar_acpi;
 
     set_task( &bar_ip, 1, 60, get_ip_addr, &bar_ip.str, IP_SIZE);
