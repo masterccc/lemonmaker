@@ -2,7 +2,7 @@
 
 Generate output for lemonbar (https://github.com/LemonBoy/bar)
 
-Every block can have a different refresh delay.
+Each block can have a different refresh delay.
 
 ![alt text](https://raw.githubusercontent.com/masterccc/lemonmaker/master/scrsht.png)
 
@@ -32,4 +32,4 @@ set_task( &bar_foo, /* Block struct */
               update_acpi, /* update function*/
               &bar_acpi.str, /* output string */
               ACPI_SIZE);  /* output string max lenght */
-              ``` 
+``` 
