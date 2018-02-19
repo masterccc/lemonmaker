@@ -4,6 +4,8 @@ Generate output for lemonbar (https://github.com/LemonBoy/bar)
 
 Every block can have a different refresh delay.
 
+![alt text](https://raw.githubusercontent.com/masterccc/lemonmaker/master/scrsht.png)
+
 ## Available modules :
 
 * Battery level
