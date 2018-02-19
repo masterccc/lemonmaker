@@ -33,3 +33,9 @@ set_task( &bar_foo, /* Block struct */
               &bar_acpi.str, /* output string */
               ACPI_SIZE);  /* output string max lenght */
               ``` 
+
+Add this line before main loop :
+
+```
+ENABLE_WIDGET(bar_dspace);
+```

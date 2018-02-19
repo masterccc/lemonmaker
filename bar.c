@@ -1,18 +1,18 @@
 #define _GNU_SOURCE     /* To get defns of NI_MAXSERV and NI_MAXHOST */
-#include <stdio.h>
-#include <sys/types.h>
-#include <ifaddrs.h>
+
 #include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <ifaddrs.h>
 #include <linux/if_link.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <sys/wait.h>
+#include <sys/socket.h>
 #include <sys/statvfs.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "bar.h"
 
@@ -35,16 +35,19 @@
 #define THEME_DSPACE_BEGIN "%%{r}%%{B#FAA400} "
 #define THEME_DSPACE_END   " %%{B-}"
 
+#define ENABLE_WIDGET(x) tasks[i++] = x
+
 void set_task(struct s_task *task,
               int timer,
               int base_timer,
               void (*func)(char*),
-              char** str, int str_len){
+              char** str, int str_len, int *count){
 
   task->timer = timer ;
   task->base_timer = base_timer ;
   task->func = func ;
   task->str = malloc( str_len * sizeof(char));
+  *count += 1;
 }
 void get_ip_addr(char *str){
 
@@ -137,12 +140,12 @@ void update_acpi(char *out){
 void update_dspace(char *out){
 
     struct statvfs root, home;
-
+    float rspace, hspace ;
     statvfs("/", &root);
     statvfs("/home", &home);
 
-    float rspace = 100 - (((float)root.f_bfree / (float)root.f_blocks) * 100);
-    float hspace = 100 - (((float)home.f_bfree / (float)home.f_blocks) * 100) ;
+    rspace = 100 - (((float)root.f_bfree / (float)root.f_blocks) * 100);
+    hspace = 100 - (((float)home.f_bfree / (float)home.f_blocks) * 100) ;
 
     snprintf(out, DSPACE_SIZE, THEME_DSPACE_BEGIN
         " / : %.2f%% /home : %.2f%%" THEME_DSPACE_END,
@@ -150,26 +153,39 @@ void update_dspace(char *out){
 
 }
 
+void add_task(struct s_task *tasks, struct s_task t){
+    static int count = 0 ;
+    tasks[count++] = t ;
+}
+
 
 int main(void){
 
-    int i;
+    int i, mod;
     struct s_task bar_ip, bar_date, bar_acpi, bar_dspace ;
-
-    set_task( &bar_ip, 1, 60, get_ip_addr, &bar_ip.str, IP_SIZE);
-    set_task( &bar_date, 1, 60, update_date, &bar_date.str, DATE_SIZE);
-    set_task( &bar_acpi, 1, 120, update_acpi, &bar_acpi.str, ACPI_SIZE);
-    set_task( &bar_dspace, 1, 600, update_dspace, &bar_dspace.str, DSPACE_SIZE);
-
-    struct s_task tasks[] = { bar_dspace, bar_ip, bar_acpi, bar_date };
+    struct s_task *tasks;
 
     char ban[TOTAL_LENGTH];
     char *ban_p ;
+    
+    mod = i = 0 ;
+    set_task( &bar_ip, 1, 60, get_ip_addr, &bar_ip.str, IP_SIZE, &mod);
+    set_task( &bar_date, 1, 60, update_date, &bar_date.str, DATE_SIZE, &mod);
+    set_task( &bar_acpi, 1, 120, update_acpi, &bar_acpi.str, ACPI_SIZE, &mod);
+    set_task( &bar_dspace, 1, 600, update_dspace, &bar_dspace.str, DSPACE_SIZE, &mod);
+
+    tasks = malloc( mod * sizeof(struct s_task));
+
+    ENABLE_WIDGET(bar_dspace);
+    ENABLE_WIDGET(bar_ip);
+    ENABLE_WIDGET(bar_acpi);
+    ENABLE_WIDGET(bar_date);
+
 
     while(1){
         memset(ban,0,TOTAL_LENGTH);
         ban_p = ban ;
-        for(i =0 ; i < (sizeof(tasks) / sizeof(struct s_task)) ; i++){
+        for(i = 0 ; i < mod ; i++){
 
             tasks[i].timer--;
             if(!tasks[i].timer){
