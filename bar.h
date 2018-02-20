@@ -13,7 +13,7 @@ void set_task(struct s_task *task,int timer,
               int base_timer,
               void (*func)(char*),
               char** str,
-              int str_len);
+              int str_len, int *count);
 
 
 void get_ip_addr(char *str);
