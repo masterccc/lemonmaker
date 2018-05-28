@@ -147,7 +147,7 @@ void update_dspace(char *out){
     rspace = 100 - (((float)root.f_bfree / (float)root.f_blocks) * 100);
     hspace = 100 - (((float)home.f_bfree / (float)home.f_blocks) * 100) ;
 
-    snprintf(out, DSPACE_SIZE, THEME_DSPACE_BEGIN
+    snprintf(out, DSPACE_SIZE +6, THEME_DSPACE_BEGIN
         " / : %.2f%% /home : %.2f%%" THEME_DSPACE_END,
         rspace, hspace);
 
