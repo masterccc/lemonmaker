@@ -31,9 +31,12 @@
 #define THEME_ACPI_BEGIN "%%{u#00AA00} "
 #define THEME_ACPI_END   " %%{B-}"
 
-#define DSPACE_SIZE 26 + 17
+#define DSPACE_SIZE 49
 #define THEME_DSPACE_BEGIN "%%{r}%%{B#FAA400} "
 #define THEME_DSPACE_END   " %%{B-}"
+
+#define WHEREAMI_SIZE 50
+#define MAX_CMD_RES 50
 
 #define ENABLE_WIDGET(x) tasks[i++] = x
 
@@ -147,9 +150,44 @@ void update_dspace(char *out){
     rspace = 100 - (((float)root.f_bfree / (float)root.f_blocks) * 100);
     hspace = 100 - (((float)home.f_bfree / (float)home.f_blocks) * 100) ;
 
-    snprintf(out, DSPACE_SIZE +6, THEME_DSPACE_BEGIN
+    snprintf(out, DSPACE_SIZE, THEME_DSPACE_BEGIN
         " / : %.2f%% /home : %.2f%%" THEME_DSPACE_END,
         rspace, hspace);
+
+}
+
+char* sh_exec(char *out){
+
+    int pip[2], status ;
+    char *res, *p ;
+    pid_t pid ;
+    pipe(pip);
+
+    res = calloc( MAX_CMD_RES, sizeof(char));
+    pid = fork();
+
+    if(pid == 0){
+        /* child process */
+        dup2(pip[1], 1);
+        close(pip[0]);
+        close(pip[1]);
+        execv("/bin/sh", (char* const[]){"/bin/sh","-c", out, 0});
+        exit(EXIT_SUCCESS);
+    }
+    else {
+        close(pip[1]);
+        read(pip[0], res, 50);
+        waitpid(pid, &status, 0);
+        return res ;
+    }
+}
+
+void update_whereami(char *out){
+
+   char *cmd = "echo -n `whoami`'@'`hostname`";
+   char *output = sh_exec(cmd);
+   snprintf(out, 50, "%s", output);
+   free(output);
 
 }
 
@@ -162,7 +200,7 @@ void add_task(struct s_task *tasks, struct s_task t){
 int main(void){
 
     int i, mod;
-    struct s_task bar_ip, bar_date, bar_acpi, bar_dspace ;
+    struct s_task bar_ip, bar_date, bar_acpi, bar_dspace, bar_whereami ;
     struct s_task *tasks;
 
     char ban[TOTAL_LENGTH];
@@ -173,9 +211,11 @@ int main(void){
     set_task( &bar_date, 1, 60, update_date, &bar_date.str, DATE_SIZE, &mod);
     set_task( &bar_acpi, 1, 120, update_acpi, &bar_acpi.str, ACPI_SIZE, &mod);
     set_task( &bar_dspace, 1, 600, update_dspace, &bar_dspace.str, DSPACE_SIZE, &mod);
+    set_task( &bar_whereami, 1, 1000, update_whereami, &bar_whereami.str, WHEREAMI_SIZE, &mod);
 
     tasks = malloc( mod * sizeof(struct s_task));
 
+    ENABLE_WIDGET(bar_whereami);
     ENABLE_WIDGET(bar_dspace);
     ENABLE_WIDGET(bar_ip);
     ENABLE_WIDGET(bar_acpi);

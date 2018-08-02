@@ -12,6 +12,7 @@ Each block can have a different refresh delay.
 * Local IP
 * Date & hour
 * Disk space indicator (/ & /home)
+* Command line runner
 
 ## How to add your own block
 
